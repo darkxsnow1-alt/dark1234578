@@ -1,17 +1,22 @@
 name: Build iOS Dylib
+
 on:
   push:
     branches: [ "main" ]
+
 jobs:
   build:
     runs-on: macos-latest
     steps:
-    - uses: actions/checkout@v4
-    - name: Build Dylib
-      run: |xcrun -sdk iphoneos clang -arch arm64 -dynamiclib -o Bypass.dylib Bypass.mm fishhook.c -framework Foundation -framework UIKit
-        
-    - name: Upload Artifact
-      uses: actions/upload-artifact@v4
-      with:
-        name: Bypass-Dylib
-        path: Bypass.dylib
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Build Dylib
+        run: |
+          xcrun -sdk iphoneos clang -arch arm64 -dynamiclib -o Bypass.dylib Bypass.mm fishhook.c -framework Foundation -framework UIKit
+
+      - name: Upload Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: Bypass-Dylib
+          path: Bypass.dylib

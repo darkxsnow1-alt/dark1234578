@@ -5,7 +5,7 @@
 #import <stdio.h>
 #import <sys/sysctl.h>
 #import <unistd.h>
-#import <sys/ptrace.h>
+#import <sys/types.h>
 #import "fishhook.h"
 
 // ==========================================
@@ -46,22 +46,13 @@ FILE* my_fopen(const char *path, const char *mode) {
 char* (*orig_getenv)(const char* name);
 char* my_getenv(const char* name) {
     if (name && strcmp(name, "HOME") == 0) {
-        // تحويل النص لـ char* عشان نمنع التحذير
         return (char*)"/var/mobile/Containers/Data/Application/00000000-0000-0000-0000-000000000000";
     }
     return orig_getenv(name);
 }
 
 // ==========================================
-// 3. منع التتبع (Anti-Debugging)
-// ==========================================
-int (*orig_ptrace)(int request, pid_t pid, caddr_t addr, int data);
-int my_ptrace(int request, pid_t pid, caddr_t addr, int data) {
-    return 0; 
-}
-
-// ==========================================
-// 4. حجب فحص النظام (Sysctl Bypass)
+// 3. حجب فحص النظام (Sysctl Bypass)
 // ==========================================
 int (*orig_sysctl)(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen);
 int my_sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp, size_t newlen) {
@@ -72,10 +63,9 @@ int my_sysctl(int *name, u_int namelen, void *oldp, size_t *oldlenp, void *newp,
 }
 
 // ==========================================
-// 5. تفعيل الحماية (مع تحويل المؤشرات)
+// 4. تفعيل الحماية (Constructor)
 // ==========================================
 __attribute__((constructor)) void InitProtection() {
-    // تحويل المؤشرات لـ (void**) عشان نرضي الكومبايلر
     struct rebinding stat_rebind = {"stat", (void*)my_stat, (void**)&orig_stat};
     rebind_symbols(&stat_rebind, 1);
 
@@ -84,9 +74,6 @@ __attribute__((constructor)) void InitProtection() {
 
     struct rebinding getenv_rebind = {"getenv", (void*)my_getenv, (void**)&orig_getenv};
     rebind_symbols(&getenv_rebind, 1);
-
-    struct rebinding ptrace_rebind = {"ptrace", (void*)my_ptrace, (void**)&orig_ptrace};
-    rebind_symbols(&ptrace_rebind, 1);
 
     struct rebinding sysctl_rebind = {"sysctl", (void*)my_sysctl, (void**)&orig_sysctl};
     rebind_symbols(&sysctl_rebind, 1);
